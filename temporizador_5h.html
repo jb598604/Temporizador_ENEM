@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Temporizador 5h</title>
+  <style>
+    body {background-color: white; font-family: "Courier New", monospace; text-align: center; margin-top: 50px; color: black;}
+    h1 {font-size: 2.5em; margin-bottom: 40px; border-bottom: 4px solid black; display: inline-block; padding-bottom: 10px;}
+    .tempos span {display: block; font-size: 2em; margin: 15px 0;}
+    button, a {font-size: 1.2em; padding: 10px 20px; margin: 10px; cursor: pointer; border: 2px solid black; background-color: #f0f0f0; border-radius: 8px; text-decoration: none; color: black;}
+    button:hover, a:hover {background-color: #ddd;}
+  </style>
+</head>
+<body>
+  <h1>Temporizador 5h</h1>
+  <div class="tempos" id="tempos"></div>
+  <button id="iniciar">Iniciar</button>
+  <button id="reiniciar" style="display:none;">Reiniciar</button>
+  <br>
+  <button id="banheiro">Pedir para ir ao banheiro</button>
+  <button id="agua">Pedir para beber água</button>
+  <br>
+  <a href="index.html">Voltar</a>
+
+  <audio id="alarmeSirene">
+    <source src="https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg" type="audio/ogg">
+  </audio>
+
+  <script>
+    const totalHoras = 5;
+    let tempo = totalHoras*60*60;
+    let intervalo;
+    const temposContainer = document.getElementById('tempos');
+
+    // Criar spans de 30 em 30 minutos
+    for(let t=totalHoras*60; t>=30; t-=30){
+      const span = document.createElement('span');
+      span.id='t'+t;
+      span.textContent = t>=60 ? Math.floor(t/60)+'h'+(t%60>0?t%60+'min':'') : t+'min';
+      temposContainer.appendChild(span);
+    }
+
+    const frasesAplicador = ["Vai logo, não demore!","Rápido, o tempo está passando!","Não perca tempo com conversa!","Movimente-se e volte rápido!","Apresse-se, a prova continua!"];
+
+    function falarBravo(texto){
+      const voz = new SpeechSynthesisUtterance(texto);
+      voz.lang="pt-BR";
+      voz.pitch=0.5;
+      voz.rate=0.85;
+      speechSynthesis.speak(voz);
+    }
+
+    function resetarTempos(){
+      const spans = document.querySelectorAll('.tempos span');
+      spans.forEach(s=>s.style.display='block');
+    }
+
+    function iniciarContagem(){
+      document.getElementById("iniciar").disabled=true;
+      document.getElementById("reiniciar").style.display="none";
+      tempo=totalHoras*60*60;
+      resetarTempos();
+
+      const regras=[
+        "Atenção candidatos. Mantenham silêncio na sala.",
+        "Proibido o uso de celular.",
+        "Não é permitido conversar durante a prova.",
+        "Verifiquem seus dados e preencham corretamente o cartão de respostas.",
+        "Boa prova!"
+      ];
+
+      let i=0;
+      function narrarRegras(){
+        if(i<regras.length){
+          falarBravo(regras[i]);
+          i++;
+          setTimeout(narrarRegras,3500);
+        }else{
+          const alarme=document.getElementById("alarmeSirene");
+          alarme.play();
+          setTimeout(()=>{
+            alarme.pause();
+            alarme.currentTime=0;
+            iniciarTemporizador();
+          },10000);
+        }
+      }
+      narrarRegras();
+    }
+
+    function iniciarTemporizador(){
+      intervalo=setInterval(()=>{
+        const tMin=Math.ceil(tempo/60);
+        const span=document.getElementById('t'+(Math.ceil(tMin/30)*30));
+        if(span && tempo%(30*60)===0) span.style.display='none';
+
+        // Avisos especiais conforme solicitado
+        if(tempo===2.5*60*60) falarBravo("Alunos que terminaram podem se retirar, mas não levar o caderno ainda.");
+        if(tempo===30*60) falarBravo("Agora é permitido sair com o caderno de questões.");
+        if(tempo===5*60) falarBravo("Últimos 3 alunos só podem sair juntos, após entregar gabarito, redação e assinar a ata.");
+
+        if(tempo===0){
+          clearInterval(intervalo);
+          falarBravo("Tempo esgotado!");
+          document.getElementById("reiniciar").style.display="inline-block";
+          document.getElementById("iniciar").disabled=false;
+          document.getElementById("alarmeSirene").play();
+        }
+        tempo--;
+      },1000);
+    }
+
+    document.getElementById("iniciar").addEventListener("click",iniciarContagem);
+    document.getElementById("reiniciar").addEventListener("click",iniciarContagem);
+
+    document.getElementById("banheiro").addEventListener("click",()=>{falarBravo(frasesAplicador[Math.floor(Math.random()*frasesAplicador.length)]);});
+    document.getElementById("agua").addEventListener("click",()=>{falarBravo(frasesAplicador[Math.floor(Math.random()*frasesAplicador.length)]);});
+  </script>
+</body>
+</html>
